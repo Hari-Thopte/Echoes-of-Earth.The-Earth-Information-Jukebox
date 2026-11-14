@@ -1,0 +1,18 @@
+{
+  "name": "Earth Jukebox: Planetary Telemetry & Sonification",
+  "short_name": "Earth Jukebox",
+  "description": "Explore 23 years of NASA Earth observations across Arctic Ice, Antarctica, Air, Greenness, Temperature, and Rainfall in 3D and real-time harmonic audio.",
+  "start_url": "/jukebox.html",
+  "display": "standalone",
+  "background_color": "#02040a",
+  "theme_color": "#030712",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='36' fill='%2302040a'/><circle cx='96' cy='96' r='64' fill='%230ea5e9'/><path d='M48 80 Q96 45 144 85 Q120 130 70 120 Z' fill='%2334d399'/><circle cx='96' cy='96' r='64' fill='none' stroke='%23bae6fd' stroke-width='4'/></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+

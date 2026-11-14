@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Earth Jukebox: Interactive 3D Planetary Telemetry & Harmonic Sonification across Ice, Air, Greenness, Temperature & Rainfall (2003–2025).">
+  <meta name="theme-color" content="#030712">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Earth Jukebox — Listening to a Changing Planet">
+  <meta property="og:description" content="Explore 23 years of NASA satellite observations across Arctic Ice, Antarctica, Air, Greenness, Temperature & Rainfall in 3D and harmonic sound.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Earth Jukebox — Listening to a Changing Planet">
+  <meta name="twitter:description" content="Interactive 3D planetary telemetry & real-time harmonic sonification powered by NASA GIBS.">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%2314092a'/><circle cx='50' cy='50' r='40' fill='%237e22ce'/><path d='M25 45 Q35 30 50 35 T75 40 Q65 65 50 65 T25 45 Z' fill='%2310b981' opacity='0.85'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <title>Earth Jukebox — NASA Space Apps: The Earth Information Jukebox</title>
+  <link rel="stylesheet" href="style.css?v=5.8">
+  <script src="vendor/three.min.js"></script>
+  <script src="vendor/gsap.min.js"></script>
+  <script src="vendor/Tone.js"></script>
+  <script src="vendor/lil-gui.umd.min.js"></script>
+</head>
+<body>
+  <noscript><div style="padding:24px;color:#fff;background:#000;">JavaScript is required to run Earth Jukebox.</div></noscript>
+  <a href="#tl-play-btn" id="skip-to-timeline">Skip to timeline controls</a>
+  <div id="sr-live-region" class="sr-only" aria-live="polite"></div>
+
+  <!-- Start Screen with Video Background -->
+  <div id="loading-screen">
+    <video id="start-bg-video" class="start-bg-video" autoplay loop muted playsinline disablepictureinpicture preload="metadata" aria-hidden="true">
+      <source src="bg-video.mp4?v=3" type="video/mp4">
+    </video>
+    <div class="start-badge" id="start-badge-el">NASA Space Apps Challenge • The Earth Information Jukebox</div>
+    <div class="start-hero-title" id="start-hero-title">Earth Jukebox: Arctic</div>
+    <div class="start-hero-sub" id="start-hero-sub">Explore 23 years of satellite Arctic sea-ice observations (2003–2025) through 3D subsurface pack-ice rendering, orbital telemetry, and real-time harmonic synthesis.</div>
+    <div id="start-domain-picker" role="group" aria-label="Choose Earth Jukebox">
+      <button class="start-domain-btn active" data-domain="ice" style="--domain-accent:#38bdf8;" type="button"><canvas class="start-domain-thumb" data-thumb="ice" width="22" height="22"></canvas> Arctic Ice</button>
+      <button class="start-domain-btn" data-domain="antarctica" style="--domain-accent:#10b981;" type="button"><canvas class="start-domain-thumb" data-thumb="antarctica" width="22" height="22"></canvas> Antarctica</button>
+      <button class="start-domain-btn" data-domain="air" style="--domain-accent:#fbbf24;" type="button"><canvas class="start-domain-thumb" data-thumb="air" width="22" height="22"></canvas> Air</button>
+      <button class="start-domain-btn" data-domain="greenness" style="--domain-accent:#34d399;" type="button"><canvas class="start-domain-thumb" data-thumb="greenness" width="22" height="22"></canvas> Greenness</button>
+      <button class="start-domain-btn" data-domain="temperature" style="--domain-accent:#fb7185;" type="button"><canvas class="start-domain-thumb" data-thumb="temperature" width="22" height="22"></canvas> Temperature</button>
+      <button class="start-domain-btn" data-domain="rainfall" style="--domain-accent:#60a5fa;" type="button"><canvas class="start-domain-thumb" data-thumb="rainfall" width="22" height="22"></canvas> Rainfall</button>
+    </div>
+    <div class="loader-text" id="loader-label">INITIALIZING ORBITAL TELEMETRY...</div>
+    <div class="loader-bar-bg"><div class="loader-bar-fill" id="loader-bar"></div></div>
+    <div id="start-experience-box">
+      <div class="start-btn-row">
+        <button id="watch-story-start-btn" class="primary-start-btn" type="button">Watch Guided Story</button>
+        <button id="explore-own-start-btn" class="secondary-start-btn" type="button">Explore Interactive Globe</button>
+      </div>
+      <button id="start-without-sound-btn" type="button">Start without sound (visuals &amp; captions)</button>
+      <div class="headphones-note">Best with headphones • Hover over the 3D globe or deploy acoustic sensors</div>
+    </div>
+  </div>
+
+  <!-- Film Letterbox & Story Progress -->
+  <div id="letterbox-top" class="letterbox-bar"></div>
+  <div id="letterbox-bottom" class="letterbox-bar"></div>
+  <div id="film-story-dots" aria-hidden="true">
+    <div class="story-dot" id="story-dot-0"></div>
+    <div class="story-dot" id="story-dot-1"></div>
+    <div class="story-dot" id="story-dot-2"></div>
+    <div class="story-dot" id="story-dot-3"></div>
+  </div>
+
+  <!-- Clean 3-Zone Bento App Shell -->
+  <div id="ui-shell">
+    <!-- ZONE 1: Top Command Bar -->
+    <header id="top-header-bar">
+      <div class="brand-cluster">
+        <span class="status-beacon"></span>
+        <span class="brand-title">Earth Jukebox</span>
+        <span class="brand-tag" id="gibs-hd-pill">AMSR-E / AMSR2 12km</span>
+      </div>
+
+      <nav id="arctic-regions-bar" aria-label="Arctic Regional Landmarks">
+        <button class="region-pin-btn" data-region="pole" type="button">90°N Basin</button>
+        <button class="region-pin-btn" data-region="beaufort" type="button">Beaufort Gyre</button>
+        <button class="region-pin-btn" data-region="nwpassage" type="button">NW Passage</button>
+        <button class="region-pin-btn" data-region="fram" type="button">Fram Strait</button>
+        <button class="region-pin-btn" data-region="laptev" type="button">Laptev Nursery</button>
+      </nav>
+
+      <div id="top-nav-wrap" role="navigation" aria-label="Tools">
+        <button id="watch-story-nav-btn" class="nav-pill-btn" type="button" title="Watch guided story (W)">Story</button>
+        <button id="compare-nav-btn" class="nav-pill-btn" type="button" title="Compare two years (C)">Compare</button>
+        <button id="share-nav-btn" class="nav-pill-btn" type="button" title="Copy shareable link">Share</button>
+        <button id="about-nav-btn" class="nav-pill-btn" type="button" title="About this data (A)">Info</button>
+        <button id="mobile-menu-btn" type="button" aria-expanded="false">Tools ▾</button>
+        <div id="top-nav-btns" role="menu">
+          <button id="decline-nav-btn" class="nav-pill-btn" type="button" title="Sound of the decline (2003 → 2025)">Decline</button>
+          <button id="surprise-nav-btn" class="nav-pill-btn" type="button" title="Random domain & year">Surprise</button>
+          <button id="reset-baseline-btn" class="nav-pill-btn" type="button" title="Reset to 2003 baseline">Reset 2003</button>
+          <button id="sweep-nav-btn" class="nav-pill-btn" type="button" aria-pressed="false" title="Radar sweep (R)">Radar</button>
+          <button id="listen-nav-btn" class="nav-pill-btn" type="button" title="How to listen guide (H)">Audio Guide</button>
+          <button id="ice-colors-btn" class="nav-pill-btn" type="button" aria-pressed="true" title="Toggle Optical vs Thermal LUT">LUT</button>
+          <button id="captions-toggle-btn" class="nav-pill-btn" type="button" aria-pressed="false" title="Toggle sound captions">Captions</button>
+          <button id="speech-toggle-btn" class="nav-pill-btn" type="button" aria-pressed="false" title="Spoken audio description">Voice</button>
+          <button id="classroom-toggle-btn" class="nav-pill-btn" type="button" aria-pressed="false" title="Classroom mode with teacher notes">Classroom</button>
+          <button id="lite-toggle-btn" class="nav-pill-btn" type="button" aria-pressed="false" title="Lite performance mode">Lite Mode</button>
+          <button id="mobile-story-btn" class="nav-pill-btn" type="button" aria-pressed="false" title="Simplified story-only layout">Simple UI</button>
+          <button id="export-video-nav-btn" class="nav-pill-btn" type="button" title="Export WebM time-lapse with audio">Video</button>
+          <button id="export-midi-nav-btn" class="nav-pill-btn" type="button" title="Download MIDI track">MIDI</button>
+          <button id="postcard-nav-btn" class="nav-pill-btn" type="button" title="Save PNG postcard">PNG</button>
+          <button id="shortcuts-nav-btn" class="nav-pill-btn" type="button" title="Keyboard shortcuts (?)">Shortcuts</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Domain Jukebox Switcher -->
+    <nav id="domain-switcher-bar" aria-label="Earth Jukebox Domains">
+      <button class="domain-pill-btn active" data-domain="ice" style="--domain-accent:#38bdf8;" type="button">Arctic</button>
+      <button class="domain-pill-btn" data-domain="antarctica" style="--domain-accent:#10b981;" type="button">Antarctica</button>
+      <button class="domain-pill-btn" data-domain="air" style="--domain-accent:#fbbf24;" type="button">Air</button>
+      <button class="domain-pill-btn" data-domain="greenness" style="--domain-accent:#34d399;" type="button">Greenness</button>
+      <button class="domain-pill-btn" data-domain="temperature" style="--domain-accent:#fb7185;" type="button">Temp</button>
+      <button class="domain-pill-btn" data-domain="rainfall" style="--domain-accent:#60a5fa;" type="button">Rainfall</button>
+    </nav>
+
+    <!-- ZONE 2: Right Telemetry & Polar Radar Inspector -->
+    <aside id="right-inspector" aria-label="Telemetry & Radar">
+      <div class="bento-card">
+        <div class="bento-header">
+          <span id="inspector-title-lbl">Cryosphere Telemetry</span>
+          <span id="inspector-series-lbl" title="3D globe overlays and telemetry are derived from official NASA GIBS, NSIDC, and GISTEMP observational satellite datasets.">OBSERVATIONAL • NASA GIBS</span>
+        </div>
+        <div class="telemetry-kpi-grid">
+          <div class="kpi-cell">
+            <span class="kpi-label">Epoch</span>
+            <span class="kpi-value cyan" id="kpi-year-val">2003</span>
+          </div>
+          <div class="kpi-cell">
+            <span class="kpi-label" id="kpi-main-lbl">Ice Index</span>
+            <span class="kpi-value" id="kpi-index-val">46.2%</span>
+          </div>
+          <div class="kpi-cell">
+            <span class="kpi-label">vs 2003</span>
+            <span class="kpi-value rose" id="kpi-anomaly-val">0.0 pts</span>
+          </div>
+          <div class="kpi-cell">
+            <span class="kpi-label" id="kpi-sec-lbl">Multi-Yr Pack</span>
+            <span class="kpi-value gold" id="kpi-pack-val">64%</span>
+          </div>
+        </div>
+        <div class="provenance-note"><strong>Sources:</strong> Arctic = NSIDC v4 (M km²); Antarctica = NSIDC v4 (M km²); Temp = NASA GISTEMP v4 (°C); Air = NASA MODIS Terra AOD; Greenness = NASA MODIS Terra NDVI; Rain = NOAA/NASA GPCP (mm/d). Overlays = NASA GIBS.</div>
+        <div class="layer-toggles-grid">
+          <button id="baseline-3d-toggle" class="hud-chip-btn" type="button" aria-pressed="true">2003 Gold Ring</button>
+          <button id="curtain-3d-toggle" class="hud-chip-btn" type="button" aria-pressed="false">3D Split Curtain</button>
+          <button id="seasonal-cycle-toggle" class="hud-chip-btn" type="button" aria-pressed="false">12-Mo Cycle</button>
+          <button id="sat-orbit-toggle" class="hud-chip-btn" type="button" aria-pressed="true">Aqua Orbit</button>
+          <button id="live-gibs-toggle" class="hud-chip-btn" type="button" aria-pressed="false">Live GIBS</button>
+          <button id="collab-room-btn" class="hud-chip-btn" type="button" aria-pressed="false" title="Experimental shared buoy room (4s sync)">Collab (Exp)</button>
+          <button id="csv-upload-btn" class="hud-chip-btn" type="button">Upload CSV</button>
+          <input id="csv-file-input" type="file" accept=".csv,text/csv" style="display:none">
+          <button id="buoy-mode-toggle" class="hud-chip-btn" type="button" aria-pressed="false">+ Deploy Acoustic Sonar Buoy (0/3)</button>
+        </div>
+        <div id="seasonal-month-row" style="display:none;margin-top:8px;align-items:center;gap:8px;font-family:var(--font-mono);font-size:10px;color:var(--accent-ice);">
+          <span>Month</span>
+          <input id="seasonal-month-slider" type="range" min="1" max="12" step="0.1" value="9" style="flex:1;accent-color:var(--accent-cyan);">
+          <span id="seasonal-month-label" style="min-width:26px;text-align:right;">Sep</span>
+        </div>
+      </div>
+
+      <div class="bento-card" id="polar-inset-panel">
+        <div class="bento-header">
+          <span id="polar-inset-label">Arctic Radar, 2003</span>
+          <button id="polar-collapse-btn" class="collapse-btn" type="button" aria-expanded="true" aria-label="Collapse polar map">−</button>
+        </div>
+        <div class="polar-body">
+          <div class="polar-canvas-wrap">
+            <canvas id="polar-inset-canvas" width="240" height="240" tabindex="0" aria-label="Interactive Arctic sea ice radar"></canvas>
+            <div id="polar-tooltip">80°N • 74% Ice</div>
+          </div>
+          <div class="polar-controls-row">
+            <span>2003 Split</span>
+            <input id="then-now-slider" type="range" min="0" max="100" value="0" aria-label="Then vs Now split divider">
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ZONE 3: Unified Bottom Command Dock -->
+    <footer id="bottom-command-dock">
+      <div class="dock-meta-row">
+        <div id="live-readout">2003 | Relative ice-cover index (&gt;= 15%): 46.2%</div>
+        <div id="moments-row">
+          <button id="moment-low-btn" class="moment-chip" type="button">Record low: 2012</button>
+          <button id="moment-drop-btn" class="moment-chip" type="button">Steepest drop: 2007</button>
+          <button id="moment-rebound-btn" class="moment-chip" type="button">Rebound: 2013</button>
+          <button id="moment-tour-btn" class="moment-chip tour" type="button">Highlights Tour</button>
+        </div>
+        <div class="legend-pill">
+          <span class="legend-ramp-bar" id="legend-ramp-bar"></span>
+          <span id="story-legend-text">15% Marginal → 100% Multi-Year Pack</span>
+        </div>
+      </div>
+
+      <div id="timeline-bar">
+        <button id="tl-play-btn" class="tl-btn" type="button">Play</button>
+
+        <!-- Integrated Interactive Sparkline Scrubber -->
+        <div class="scrubber-chart-stack" id="chart-panel">
+          <div class="chart-y-axis">
+            <span id="chart-y-max">50%</span>
+            <span id="chart-y-min">22%</span>
+          </div>
+          <div class="svg-scrubber-inner">
+            <svg id="ice-chart-svg" viewBox="0 0 500 34" preserveAspectRatio="none" role="img" aria-label="2003 to 2025 sea ice trend">
+              <defs>
+                <linearGradient id="iceChartGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.45"/>
+                  <stop offset="100%" stop-color="#0284c7" stop-opacity="0.0"/>
+                </linearGradient>
+              </defs>
+              <line x1="0" y1="17" x2="500" y2="17" stroke="rgba(56,189,248,0.22)" stroke-dasharray="3,3"/>
+              <path id="chart-area-path" fill="url(#iceChartGrad)" d=""></path>
+              <path id="chart-line-path" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" d=""></path>
+              <path id="chart-custom-path" fill="none" stroke="#fbbf24" stroke-width="1.6" stroke-dasharray="4,3" stroke-linecap="round" d=""></path>
+              <circle id="chart-marker" cx="0" cy="17" r="4.5" fill="#020817" stroke="#38bdf8" stroke-width="2.2"></circle>
+            </svg>
+            <input id="tl-scrubber" type="range" min="2003" max="2025" step="0.01" value="2003" aria-label="Timeline Year Scrubber">
+          </div>
+        </div>
+
+        <div id="tl-year-label">2003</div>
+        <canvas id="audio-viz-canvas" width="64" height="26" title="Real-time harmonic spectrum"></canvas>
+        <div class="tl-divider"></div>
+        <button id="tl-mute-btn" class="tl-btn" type="button">Mute</button>
+        <input id="tl-volume-slider" type="range" min="0" max="1" step="0.01" value="0.52" aria-label="Master Volume">
+        <select id="tl-style-select" aria-label="Sound style preset">
+          <option value="Calm ambient">Calm ambient</option>
+          <option value="Original">Crystalline</option>
+          <option value="Minimal">Minimal</option>
+          <option value="Deep Drone">Deep Drone</option>
+          <option value="Sparse Piano">Sparse Piano</option>
+          <option value="Glacial Granular">Glacial Granular</option>
+        </select>
+      </div>
+
+      <div id="sound-caption-strip">Calm ambient chords • Ready</div>
+      <div id="what-hearing-strip" style="display:none;font-family:var(--font-mono);font-size:10px;color:var(--accent-ice);text-align:center;opacity:0.9;"></div>
+      <span id="story-sound-key" class="sr-only">Higher pitch and warmer chords represent thicker Arctic sea ice</span>
+    </footer>
+  </div>
+
+  <!-- Contextual Regional Story & Thickness Profile Drawer -->
+  <div id="region-story-card" class="bento-card" role="region" aria-live="polite">
+    <div class="region-card-header">
+      <span id="region-card-title">Beaufort Gyre</span>
+      <button id="region-card-close" type="button" aria-label="Close regional insight">✕</button>
+    </div>
+    <div id="region-card-desc"></div>
+    <div class="thickness-profile-box">
+      <div id="drawer-metric-lbl" style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted);text-transform:uppercase;">Regional Pack Concentration</div>
+      <div class="thickness-row">
+        <span class="thickness-year-lbl">2003</span>
+        <div class="thickness-bar-track"><div id="thick-bar-2003" class="thickness-bar-fill" style="width:88%;background:var(--accent-gold);"></div></div>
+        <span id="thick-val-2003">88%</span>
+      </div>
+      <div class="thickness-row">
+        <span class="thickness-year-lbl" id="thick-lbl-now">2018</span>
+        <div class="thickness-bar-track"><div id="thick-bar-now" class="thickness-bar-fill" style="width:54%;background:var(--accent-cyan);"></div></div>
+        <span id="thick-val-now">54%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3D Projected Markers & Split Curtain -->
+  <div id="globe-markers-layer" aria-hidden="true"></div>
+  <div id="split-curtain-ui">
+    <div id="split-curtain-line"></div>
+    <div id="split-curtain-handle" role="slider" tabindex="0" aria-label="2003 vs Current Year Split Curtain" aria-valuemin="15" aria-valuemax="85" aria-valuenow="50">
+      <span style="color:var(--accent-gold);">◄ 2003 BASELINE</span>
+      <span>|</span>
+      <span style="color:var(--accent-cyan);" id="curtain-right-label">2018 NOW ►</span>
+    </div>
+  </div>
+
+  <div id="globe-hover-pill">78.4°N, 142°W • Beaufort Sea • Pack Ice 84%</div>
+
+  <!-- Film Title Card -->
+  <div id="title-card">
+    <div id="title-card-heading"></div>
+    <div id="title-card-caption"></div>
+    <div id="title-card-actions">
+      <button id="closing-explore-btn" class="primary-start-btn" type="button">Explore Interactive Globe</button>
+      <button id="closing-replay-btn" class="secondary-start-btn" type="button">Replay Story</button>
+    </div>
+  </div>
+  <button id="skip-film-btn" type="button">Skip Story ✕</button>
+
+  <div id="bg-year-numeral" aria-hidden="true">2003</div>
+  <div id="coach-marks" role="status">
+    <span id="coach-step-text">1/3 • Hover directly on the 3D Arctic pack ice to inspect concentration and trigger stereo harmonic notes.</span>
+    <button id="coach-next-btn" class="tl-btn" type="button">Next</button>
+    <button id="coach-dismiss-btn" class="tl-btn" type="button">Dismiss</button>
+  </div>
+  <div id="overlay-data-note"></div>
+
+  <!-- Compare Modal -->
+  <div id="compare-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="compare-modal-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title" id="compare-modal-title">Compare Two Epochs</div>
+        <button class="modal-close-btn" data-close-modal="compare-modal" type="button">Close ✕</button>
+      </div>
+      <div class="modal-body">
+        <p>Select two years to compare their satellite sea-ice cover and harmonic signature, or activate <strong>3D Split Curtain</strong> in the right inspector to drag a live divider across the globe.</p>
+        <div class="modal-btn-row">
+          <label>Year A: <select id="compare-select-a"></select></label>
+          <label>Year B: <select id="compare-select-b"></select></label>
+        </div>
+        <div class="modal-btn-row">
+          <button id="compare-hear-a-btn" class="tl-btn" type="button">Hear A</button>
+          <button id="compare-hear-b-btn" class="tl-btn" type="button">Hear B</button>
+          <button id="compare-alt-btn" class="tl-btn" type="button">Alternate (4s)</button>
+          <button id="compare-stop-btn" class="tl-btn" type="button">Stop</button>
+        </div>
+        <p id="compare-readout" style="color:var(--accent-cyan);font-weight:600;">Select Hear A, Hear B, or Alternate to begin.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Guide Modal -->
+  <div id="listen-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="listen-modal-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title" id="listen-modal-title">Harmonic Sonification Architecture</div>
+        <button class="modal-close-btn" data-close-modal="listen-modal" type="button">Close ✕</button>
+      </div>
+      <div class="modal-body">
+        <p>The synthesizer translates Arctic sea-ice telemetry into three studio-mixed layers: <strong>Warm Detuned Pad Voicings</strong> (overall ice index), <strong>Harmonic Ice Marimba &amp; Chimes</strong> (multi-year pack density), and <strong>Stereo-Panned Sonar Pings</strong>.</p>
+        <div class="modal-btn-row">
+          <button id="preview-high-btn" class="tl-btn" type="button">High Pack (0.9)</button>
+          <button id="preview-mid-btn" class="tl-btn" type="button">Transitional (0.5)</button>
+          <button id="preview-low-btn" class="tl-btn" type="button">Retreated Ice (0.1)</button>
+        </div>
+        <p id="listen-preview-note" style="color:var(--accent-ice);">Click any state above for a 3-second harmonic preview.</p>
+        <div id="listen-live-explainer" style="margin-top:10px;padding:10px;border-radius:8px;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.22);font-size:12px;color:#e2e8f0;">
+          <strong>What am I hearing right now?</strong> <span id="listen-live-text">Scrub or press Play to hear live telemetry synthesis.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Classroom Teacher Notes Drawer -->
+  <div id="classroom-drawer" class="bento-card" role="complementary" aria-label="Classroom Teacher Notes" style="display:none;position:fixed;left:20px;bottom:145px;z-index:35;width:300px;max-width:88vw;">
+    <div class="bento-header">
+      <span>Classroom Guide</span>
+      <button id="classroom-close-btn" class="collapse-btn" type="button" aria-label="Close classroom notes">✕</button>
+    </div>
+    <div id="classroom-notes-body" style="font-size:12px;line-height:1.45;color:#cbd5e1;"></div>
+  </div>
+
+  <!-- Keyboard Shortcuts Modal -->
+  <div id="shortcuts-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="shortcuts-modal-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title" id="shortcuts-modal-title">Keyboard &amp; Gesture Shortcuts</div>
+        <button class="modal-close-btn" data-close-modal="shortcuts-modal" type="button">Close ✕</button>
+      </div>
+      <div class="modal-body" style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;font-size:12px;">
+        <div><strong>Space</strong> — Play / Pause</div>
+        <div><strong>← / →</strong> — Step 1 Year</div>
+        <div><strong>M</strong> — Mute / Unmute</div>
+        <div><strong>S</strong> — Cycle Sound Preset</div>
+        <div><strong>W</strong> — Guided Film Story</div>
+        <div><strong>R</strong> — Radar Sweep</div>
+        <div><strong>C</strong> — Compare Epochs</div>
+        <div><strong>H</strong> — Audio Guide</div>
+        <div><strong>I</strong> — Toggle Radar Inset</div>
+        <div><strong>A / ?</strong> — Info / Shortcuts</div>
+        <div><strong>Click Globe</strong> — Probe Chord</div>
+        <div><strong>Drag / Pinch</strong> — Orbit / Zoom</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info Modal -->
+  <div id="about-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="about-modal-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title" id="about-modal-title">Methodology &amp; Keyboard Controls</div>
+        <button class="modal-close-btn" data-close-modal="about-modal" type="button">Close ✕</button>
+      </div>
+      <div class="modal-body">
+        <p><strong>NASA Space Apps Challenge:</strong> Developed for <em>The Earth Information Jukebox</em> challenge (NASA Earth Information Center / EIC), sonifying visual planetary observations into interactive soundscapes.</p>
+        <p><strong>Multi-Domain Satellite Telemetry (2003–2025):</strong> Switch live between six planetary Earth Jukeboxes powered by NASA GIBS layers — Arctic &amp; Antarctic Sea Ice (NSIDC Sea Ice Index &amp; AMSR-E/AMSR2), Surface Temperature (NASA GISTEMP v4), Air Aerosols (Reference AOD), Greenness (Reference NDVI), and Rainfall (Reference mm/d).</p>
+        <p><strong>3D Subsurface &amp; Atmospheric Shaders:</strong> Combines satellite data grids with cryosphere parallax ice floes, coastal land/ocean masking, volumetric dust/storm layers, and live 2003 split-curtain comparison.</p>
+        <p><strong>Shortcuts:</strong> Space (Play/Pause), Left/Right (Year), M (Mute), W (Story), R (Radar Sweep), C (Compare), H (Audio Guide), I (Radar Toggle), S (Sound Preset), G (Debug), Esc (Close).</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="fps-counter">60 FPS</div>
+  <div id="debug-selftest-panel"></div>
+  <div id="webgl-container"></div>
+
+  <script src="js/shaders.js?v=5.8"></script>
+  <script src="js/config.js?v=5.8"></script>
+  <script src="js/domains.js?v=5.8"></script>
+  <script src="js/helpers.js?v=5.8"></script>
+  <script src="js/scene.js?v=5.8"></script>
+  <script src="js/audio.js?v=5.8"></script>
+  <script src="js/data.js?v=5.8"></script>
+  <script src="js/controls.js?v=5.8"></script>
+  <script src="js/timeline.js?v=5.8"></script>
+  <script src="js/galaxy-bg.js?v=5.8"></script>
+  <script src="js/app.js?v=5.8"></script>
+  <script src="js/extras.js?v=5.8"></script>
+  <script>
+    // Register the service worker so the app shell, vendored libraries and textures are cached for offline use.
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/sw.js').catch(function () { /* offline support is optional */ });
+      });
+    }
+  </script>
+</body>
+</html>

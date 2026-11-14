@@ -1,0 +1,16 @@
+{
+  "name": "earth-jukebox",
+  "version": "1.0.0",
+  "description": "Earth Jukebox: Interactive 3D Arctic Sea Ice Sonification & Satellite Telemetry with Node.js + SQLite backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test tests/api.test.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "license": "MIT"
+}
+

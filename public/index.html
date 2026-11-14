@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Scroll across billions of years and watch Earth form, freeze, bloom, and fade.">
+  <meta name="theme-color" content="#000000">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="The Life of Earth — Earth Jukebox">
+  <meta property="og:description"
+    content="Interactive raw-WebGL planetary timeline and 6-domain NASA Earth telemetry sonification.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="The Life of Earth — Earth Jukebox">
+  <meta name="twitter:description"
+    content="Scroll across billions of years and watch Earth form, freeze, bloom, and fade.">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <title>The Life of Earth — NASA Space Apps: The Earth Information Jukebox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    html,
+    body {
+      height: 100%;
+      background: #000;
+      color: #fff;
+      font-family: Inter, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+      overscroll-behavior: none;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none
+    }
+
+    #gl {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block
+    }
+
+    .ui {
+      position: fixed;
+      left: 0;
+      right: 0;
+      top: 63.2%;
+      display: grid;
+      justify-items: center;
+      padding: 0 20px;
+      pointer-events: none
+    }
+
+    .cap {
+      position: relative;
+      width: 100%;
+      height: 54px
+    }
+
+    .line {
+      position: absolute;
+      inset: 0;
+      text-align: center;
+      transition: opacity .2s linear, filter .2s linear
+    }
+
+    .line.off {
+      opacity: 0;
+      filter: blur(5px)
+    }
+
+    .line h1 {
+      font-weight: 600;
+      font-size: clamp(16px, 2.05vh, 21px);
+      letter-spacing: -.012em;
+      line-height: 1.25
+    }
+
+    .line p {
+      margin-top: 6px;
+      font-size: clamp(12.5px, 1.55vh, 15px);
+      line-height: 1.3;
+      color: rgba(255, 255, 255, .5)
+    }
+
+    .line p b {
+      font-weight: 500;
+      color: #fff;
+      margin-right: 7px
+    }
+
+    #track {
+      position: relative;
+      width: min(47vh, 84vw);
+      height: 64px;
+      margin-top: clamp(14px, 3.2vh, 30px);
+      pointer-events: auto;
+      cursor: pointer;
+      outline: none
+    }
+
+    #track::before {
+      content: "";
+      position: absolute;
+      inset: -8px -30px
+    }
+
+    #ticks {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 44px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      pointer-events: none
+    }
+
+    #ticks i {
+      display: block;
+      width: 1.5px;
+      height: 44px;
+      background: #fff;
+      transform-origin: 50% 100%;
+      will-change: transform
+    }
+
+    .ends {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 54px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 12.5px;
+      color: rgba(255, 255, 255, .42);
+      pointer-events: none
+    }
+
+    .ends span.on {
+      color: #fff;
+      font-weight: 500
+    }
+
+    .enter-jukebox {
+      position: fixed;
+      top: 18px;
+      right: 20px;
+      z-index: 10;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-decoration: none;
+      background: linear-gradient(135deg, #1d4ed8 0%, #0284c7 46%, #0ea5e9 82%, #38bdf8 100%);
+      border: 1.5px solid #38bdf8;
+      padding: 9px 20px;
+      border-radius: 999px;
+      box-shadow: 0 0 26px rgba(56, 189, 248, 0.65), 0 0 14px rgba(2, 132, 199, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+      text-shadow: 0 1px 4px rgba(0, 10, 30, 0.7);
+      transition: color .2s, border-color .2s, background .2s, transform .2s, box-shadow .2s;
+    }
+
+    .enter-jukebox:hover,
+    .enter-jukebox:focus,
+    .enter-jukebox:focus-visible {
+      color: #fff;
+      border-color: #7dd3fc;
+      outline: none;
+      background: linear-gradient(135deg, #2563eb 0%, #0284c7 40%, #06b6d4 80%, #38bdf8 100%);
+      box-shadow: 0 0 34px rgba(56, 189, 248, 0.85), 0 0 18px rgba(14, 165, 233, 0.65), inset 0 1px 2px rgba(255, 255, 255, 0.5);
+      transform: translateY(-1px);
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="gl"></canvas>
+  <a class="enter-jukebox" id="enter-jukebox-link" href="/jukebox.html">Enter Earth Jukebox ↗</a>
+  <script>
+    (function () {
+      const link = document.getElementById('enter-jukebox-link');
+      if (!link) return;
+      const p = new URLSearchParams(window.location.search);
+      const dom = p.get('domain') || localStorage.getItem('earthJukeboxLastDomain');
+      if (dom) link.href = '/jukebox.html?domain=' + encodeURIComponent(dom);
+    })();
+  </script>
+  <div class="ui">
+    <div class="cap" id="cap"></div>
+    <div id="track" role="slider" tabindex="0" aria-label="Time" aria-valuemin="0" aria-valuemax="9">
+      <div id="ticks"></div>
+      <div class="ends"><span id="e0">Proto-Earth</span><span id="e1">Cinder</span></div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const STAGES = [
+        { t: '4.54 billion years ago', b: 'Proto-Earth', c: 'Dust and rock collide in orbit' },
+        { t: '4.5 billion years ago', b: 'Magma ocean', c: 'A glowing sphere of molten rock' },
+        { t: '4.0 billion years ago', b: 'First oceans', c: 'Steam cools into dark global seas' },
+        { t: '700 million years ago', b: 'Snowball Earth', c: 'Glaciers seal the planet in ice' },
+        { t: '300 million years ago', b: 'Pangea', c: 'One supercontinent, lush and green' },
+        { t: 'Today', b: 'The Blue Marble', c: 'Oceans, clouds, and fragile ice caps' },
+        { t: '2100 AD', b: 'Warming world', c: 'Ice retreats and storms intensify' },
+        { t: '1 billion years from now', b: 'Moist greenhouse', c: 'Rising sunlight boils the oceans' },
+        { t: '5 billion years from now', b: 'Scorched rock', c: 'The seas vanish under a swelling Sun' },
+        { t: '7.6 billion years from now', b: 'Cinder', c: 'An ember swallowed by the red giant' }
+      ];
+
+      // one look per stage; every stage is the same Earth ball. colours are linear and tone-mapped in the shader
+      const LOOK = [
+        { c0: [.04, .02, .08], c1: [.42, .18, .32], c2: [1.5, .75, .45], glow: [.7, .35, .65], gI: .24, freq: 2.5, warp: 1.9, cells: .25, gas: .75, shell: 0, boil: .9 },
+        { c0: [.02, .005, .002], c1: [.85, .12, .01], c2: [3.4, 1.25, .18], glow: [1.6, .3, .05], gI: .55, freq: 3.1, warp: 1.3, cells: 1, gas: 0, shell: 0, boil: 1.1 },
+        { c0: [.02, .09, .18], c1: [.14, .32, .40], c2: [1.6, 1.8, 1.9], glow: [.25, .55, .8], gI: .45, freq: 3.4, warp: 1.5, cells: 0, gas: .22, shell: 0, boil: .8 },
+        { c0: [.16, .38, .66], c1: [1.4, 1.9, 2.5], c2: [3.2, 3.6, 4.2], glow: [.65, 1.2, 2.1], gI: .9, freq: 2.8, warp: 1.0, cells: .1, gas: 0, shell: 0, boil: .4 },
+        { c0: [.03, .15, .52], c1: [.18, .78, .28], c2: [2.2, 2.4, 2.5], glow: [.22, .72, 1.6], gI: .85, freq: 2.9, warp: 1.3, cells: 0, gas: 0, shell: 0, boil: .5 },
+        { c0: [.03, .22, .82], c1: [.24, .82, .44], c2: [2.9, 3.1, 3.3], glow: [.26, .78, 1.9], gI: 1.0, freq: 3.2, warp: 1.2, cells: 0, gas: 0, shell: 0, boil: .55 },
+        { c0: [.05, .24, .64], c1: [.72, .58, .24], c2: [2.6, 2.5, 2.4], glow: [.8, .65, .45], gI: 1.05, freq: 3.6, warp: 1.4, cells: 0, gas: 0, shell: 0, boil: .85 },
+        { c0: [.12, .34, .42], c1: [1.4, 1.5, 1.2], c2: [3.8, 3.6, 2.8], glow: [1.5, 1.3, .75], gI: 1.2, freq: 3.8, warp: 1.7, cells: 0, gas: .45, shell: 0, boil: 1.3 },
+        { c0: [.18, .03, .01], c1: [1.3, .32, .08], c2: [2.6, 1.1, .35], glow: [1.7, .4, .08], gI: .85, freq: 2.4, warp: 1.8, cells: .45, gas: 0, shell: 0, boil: .9 },
+        { c0: [.04, .01, .01], c1: [.8, .12, .02], c2: [3.4, .95, .15], glow: [1.6, .28, .04], gI: .65, freq: 2.8, warp: 1.1, cells: .9, gas: 0, shell: 0, boil: .6 }
+      ];
+
+      const LAST = STAGES.length - 1, PER = 4, N = LAST * PER + 1, START = 5;
+
+      const canvas = document.getElementById('gl');
+      const gl = canvas.getContext('webgl', { antialias: false, alpha: false });
+
+      const vertSrc = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
+      const fragSrc = `
+precision highp float;
+  uniform vec2 res;
+  uniform float sc, rad, cy, fade, t, evo, rot, blur, starX, freq, warp, cells, gas, shell, gI, flick;
+  uniform vec3 c0, c1, c2, glow;
+  float h(vec3 p){ p = fract(p*.3183099 + .1); p *= 17.; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+  float n3(vec3 x){ vec3 i = floor(x), f = fract(x); f = f*f*(3.-2.*f);
+    return mix(mix(mix(h(i),h(i+vec3(1,0,0)),f.x), mix(h(i+vec3(0,1,0)),h(i+vec3(1,1,0)),f.x), f.y),
+               mix(mix(h(i+vec3(0,0,1)),h(i+vec3(1,0,1)),f.x), mix(h(i+vec3(0,1,1)),h(i+vec3(1,1,1)),f.x), f.y), f.z); }
+  float fbm(vec3 p){ float a=.5, s=0.; for(int i=0;i<5;i++){ s+=a*n3(p); p=p*2.03+vec3(1.7,9.2,3.1); a*=.5; } return s; }
+  vec3 stars(vec2 uv){
+    vec2 q = (uv + vec2(starX, 0.))*34., id = floor(q), f = fract(q)-.5;
+    float r = fract(sin(dot(id,vec2(127.1,311.7)))*43758.5453);
+    vec2 o = vec2(fract(r*17.3),fract(r*91.7))-.5;
+    float tw = .55+.45*sin(t*(.7+r*1.8)+r*40.);
+    vec2 g = f-o*.7; g.x *= 1./(1.+blur*7.);
+    return vec3(smoothstep(.975,1.,r)*smoothstep(.06,.0,length(g))*tw*.55);
+  }
+  void main(){
+    vec2 uv = (gl_FragCoord.xy - .5*res)/res.y, p = (uv - vec2(0., cy))/sc;
+    float d = length(p), e = max(d-rad, 0.);
+    vec3 col = stars(uv);
+
+    // tight halo that ends completely a short way off the ball, the page stays pure black
+    vec2 dir = p/max(d,1e-4);
+    float rays = .72 + .56*fbm(vec3(dir*2.4, evo*.5));
+    float hal = exp(-e/(rad*.11))*smoothstep(rad*.6, rad*.12, e);
+    col += glow*gI*.7*hal*rays*flick;
+
+    // soft pool of light under the ball, standing in for the reference's contact shadow
+    float py = (p.y + rad + .065)/.0135, px = p.x/(rad*1.02);
+    float pool = max(0., 1.-px*px) * exp(-py*py);
+    col += glow*min(gI,1.)*.1*pool*pool;
+
+    if(d < rad + .02){
+      float k = min(d/rad, 1.);
+      vec3 nrm = vec3(p/rad, sqrt(max(1.-k*k, 0.)));
+      float cr = cos(rot), sr = sin(rot);
+      vec3 n = vec3(nrm.x*cr + nrm.z*sr, nrm.y, -nrm.x*sr + nrm.z*cr);
+      // spinning fast smears the surface along its axis of rotation
+      float sq = 1./(1.+blur*3.2);
+      vec3 q = vec3(n.x*sq, n.y, n.z*sq);
+      float w1 = fbm(q*freq + vec3(0.,0.,evo*.28)), w2 = fbm(q*freq*.9 + 7. - vec3(evo*.22,0.,0.));
+      float v = fbm(q*freq*1.7 + warp*2.2*vec3(w1, w2, w1-w2));
+      float vein = 1.-abs(2.*fbm(q*freq*1.5 + warp*1.3*vec3(w2, w1, 0.))-1.);
+      vein = pow(vein, 9.);
+      float s = smoothstep(.24,.76,v);
+      s = mix(s, clamp(vein*1.25 + s*.14,0.,1.), cells);
+      vec3 c = mix(c0, c1, smoothstep(.0,.55,s));
+      c = mix(c, c2, smoothstep(.5,1.,s));
+      float mu = nrm.z;
+      if(shell > .001){
+        vec3 sh = c0 + c1*smoothstep(.95,.3,k)*(.25+v*1.2);
+        float fil = smoothstep(.5,.82,k)*smoothstep(1.,.8,k)*pow(v+.32,3.)*3.2;
+        sh += c2*fil + vec3(3.5,4.,5.)*exp(-k*k/.012);
+        c = mix(c, sh, shell);
+      } else {
+        c *= mix(mix(.34, .8, gas), 1., pow(mu,.5));
+      }
+      c += glow*pow(1.-mu,2.6)*.42*min(gI,1.)*(1.-gas);
+      float edge = smoothstep(1., .985, k);
+      float soft = smoothstep(1., .58, k + (fbm(q*3.4 + evo*.1)-.5)*.62) * smoothstep(1., .9, k);
+      float a = mix(edge, soft, gas);
+      col = mix(col, c, a);
+    }
+    col = 1. - exp(-col*1.15);
+    gl_FragColor = vec4(pow(col, vec3(.4545))*fade, 1.);
+  }`;
+
+      function compile(type, src) {
+        const s = gl.createShader(type);
+        gl.shaderSource(s, src);
+        gl.compileShader(s);
+        return s;
+      }
+
+      const prog = gl.createProgram();
+      gl.attachShader(prog, compile(gl.VERTEX_SHADER, vertSrc));
+      gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fragSrc));
+      gl.linkProgram(prog);
+      gl.useProgram(prog);
+
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      const loc = gl.getAttribLocation(prog, 'a');
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+      const U = {};
+      ['res', 'sc', 'rad', 'cy', 'fade', 't', 'evo', 'rot', 'blur', 'starX', 'freq', 'warp', 'cells', 'gas', 'shell', 'gI', 'flick', 'c0', 'c1', 'c2', 'glow'].forEach(k => {
+        U[k] = gl.getUniformLocation(prog, k);
+      });
+
+      let sc = 1;
+      function resize() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+        canvas.width = Math.max(1, Math.round(innerWidth * dpr));
+        canvas.height = Math.max(1, Math.round(innerHeight * dpr));
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        sc = Math.min(1, (innerWidth / Math.max(1, innerHeight)) * 1.5);
+        gl.uniform2f(U.res, canvas.width, canvas.height);
+        gl.uniform1f(U.sc, sc);
+        gl.uniform1f(U.rad, .17);
+        gl.uniform1f(U.cy, .13);
+      }
+      addEventListener('resize', resize);
+      resize();
+
+      const ticksEl = document.getElementById('ticks');
+      const tickEls = [];
+      const tickH = new Float32Array(N);
+      for (let j = 0; j < N; j++) {
+        const el = document.createElement('i');
+        ticksEl.appendChild(el);
+        tickEls.push(el);
+        tickH[j] = j % PER ? .17 : .28;
+      }
+
+      const capEl = document.getElementById('cap');
+      const trackEl = document.getElementById('track');
+      const e0El = document.getElementById('e0');
+      const e1El = document.getElementById('e1');
+      let activeLine = null;
+
+      function setCaption(i) {
+        const st = STAGES[i];
+        if (activeLine) {
+          const old = activeLine;
+          old.classList.add('off');
+          setTimeout(() => { if (old.parentNode) old.parentNode.removeChild(old); }, 240);
+        }
+        const line = document.createElement('div');
+        line.className = 'line off';
+        line.innerHTML = `<h1>${st.t}</h1><p><b>${st.b}</b>${st.c}</p>`;
+        capEl.appendChild(line);
+        void line.offsetWidth;
+        line.classList.remove('off');
+        activeLine = line;
+
+        trackEl.setAttribute('aria-valuenow', String(i));
+        trackEl.setAttribute('aria-valuetext', `${st.t}: ${st.b}`);
+        e0El.classList.toggle('on', i === 0);
+        e1El.classList.toggle('on', i === LAST);
+      }
+
+      const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+      const cloneLook = (o) => ({ ...o, c0: [...o.c0], c1: [...o.c1], c2: [...o.c2], glow: [...o.glow] });
+
+      let x = START / LAST;
+      let stage = START, omega = 14;
+      let rot = 0, evo = 0, starX = 0, lastInput = -1e9, hover = -1, dragX = null;
+      const cur = cloneLook(LOOK[START]);
+      setCaption(START);
+
+      function moveTo(nx, now) {
+        nx = clamp(nx, 0, 1);
+        omega += (nx - x) * 150;
+        x = nx;
+        lastInput = now;
+      }
+
+      function px(e) {
+        const r = trackEl.getBoundingClientRect();
+        return clamp((e.clientX - r.left) / Math.max(1, r.width));
+      }
+
+      addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+        moveTo(x + d * (e.deltaMode === 1 ? .012 : .00075), performance.now());
+      }, { passive: false });
+
+      trackEl.addEventListener('pointermove', (e) => {
+        hover = px(e);
+        if (e.pointerType === 'mouse' && dragX === null) moveTo(hover, performance.now());
+      });
+      trackEl.addEventListener('pointerleave', () => { hover = -1; });
+
+      addEventListener('pointerdown', (e) => {
+        if (e.target.closest && e.target.closest('.enter-jukebox')) return;
+        dragX = e.clientX;
+        if (e.target === trackEl || trackEl.contains(e.target)) moveTo(px(e), performance.now());
+      });
+      addEventListener('pointermove', (e) => {
+        if (dragX === null) return;
+        const now = performance.now();
+        if (e.target === trackEl || trackEl.contains(e.target)) {
+          moveTo(px(e), now);
+        } else {
+          const dx = e.clientX - dragX;
+          moveTo(x + dx / Math.min(innerWidth, 900), now);
+        }
+        dragX = e.clientX;
+      });
+      function endDrag() { dragX = null; }
+      addEventListener('pointerup', endDrag);
+      addEventListener('pointercancel', endDrag);
+
+      addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          moveTo(clamp(Math.round(x * LAST + 1) / LAST), performance.now());
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          moveTo(clamp(Math.round(x * LAST - 1) / LAST), performance.now());
+        }
+      });
+
+      const reducedMotion = matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const t0 = performance.now();
+      let prev = t0;
+      let nextAuto = t0 + 5000;
+
+      function frame(now) {
+        const dt = Math.min(.05, Math.max(0, (now - prev) / 1000));
+        prev = now;
+        const f = (r) => 1 - Math.exp(-dt * r);
+        const time = (now - t0) / 1000;
+
+        if (!reducedMotion && now - lastInput > 5000 && now > nextAuto) {
+          const idx = Math.round(x * LAST);
+          x = ((idx + 1) % (LAST + 1)) / LAST;
+          omega += 9;
+          nextAuto = now + 2600;
+        }
+
+        const i = Math.round(x * LAST);
+        if (i !== stage) {
+          omega += omega >= 0 ? 7 : -7;
+          stage = i;
+          setCaption(i);
+        }
+
+        const target = LOOK[stage];
+        const k = f(reducedMotion ? 60 : 13);
+        ['gI', 'freq', 'warp', 'cells', 'gas', 'shell', 'boil'].forEach(m => {
+          cur[m] += (target[m] - cur[m]) * k;
+        });
+        ['c0', 'c1', 'c2', 'glow'].forEach(v => {
+          for (let c = 0; c < 3; c++) cur[v][c] += (target[v][c] - cur[v][c]) * k;
+        });
+
+        omega *= Math.exp(-dt * 3.6);
+        const spin = reducedMotion ? 0 : .22 + omega;
+        const blur = Math.min(1.4, Math.abs(omega) * .1);
+
+        rot += spin * dt;
+        evo += dt * cur.boil * (1 + Math.abs(omega) * .1);
+        starX += omega * dt * .012;
+
+        gl.uniform1f(U.freq, cur.freq);
+        gl.uniform1f(U.warp, cur.warp);
+        gl.uniform1f(U.cells, cur.cells);
+        gl.uniform1f(U.gas, cur.gas);
+        gl.uniform1f(U.shell, cur.shell);
+        gl.uniform1f(U.gI, cur.gI);
+        gl.uniform3fv(U.c0, cur.c0);
+        gl.uniform3fv(U.c1, cur.c1);
+        gl.uniform3fv(U.c2, cur.c2);
+        gl.uniform3fv(U.glow, cur.glow);
+        gl.uniform1f(U.t, time);
+        gl.uniform1f(U.evo, evo);
+        gl.uniform1f(U.rot, rot);
+        gl.uniform1f(U.blur, blur);
+        gl.uniform1f(U.starX, starX);
+        gl.uniform1f(U.flick, 1 + .1 * Math.sin(time * 2.1) + .06 * Math.sin(time * 5.3));
+        gl.uniform1f(U.fade, Math.min(1, (now - t0) / 500));
+
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+        const active = x * (N - 1);
+        const bellAt = (hover >= 0 ? hover : x) * (N - 1);
+        const tk = f(22);
+        for (let j = 0; j < N; j++) {
+          const q = j - bellAt;
+          const bell = Math.exp(-q * q / 5.5);
+          const on = Math.exp(-Math.pow(j - active, 2) / .22);
+          const goal = Math.max((j % PER ? .17 : .28) + bell * .55, on);
+          tickH[j] += (goal - tickH[j]) * tk;
+          tickEls[j].style.transform = `scaleY(${tickH[j].toFixed(4)})`;
+          tickEls[j].style.opacity = (.3 + bell * .35 + on * .6).toFixed(3);
+        }
+
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    })();
+  </script>
+  <script>
+    // Register the service worker so the app shell, vendored libraries and textures are cached for offline use.
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/sw.js').catch(function () { /* offline support is optional */ });
+      });
+    }
+  </script>
+</body>
+
+</html>
