@@ -4,10 +4,33 @@
 
 Interactive 3D Earth satellite telemetry, subsurface visualization, and Tone.js harmonic sonification across six planetary domains (2003–2025), backed by a zero-dependency Node.js HTTP server and SQLite database (`node:sqlite`).
 
+## Team Krypthon
+
+- **Harshika Thopte** — Team Leader and Backend Developer
+  - Project leadership and coordination.
+  - Node.js and `node:sqlite` backend, REST APIs and the NASA GIBS caching proxy.
+  - NASA and NOAA data pipeline and data provenance documentation.
+- **Ishan Sonawane** — Frontend Developer
+  - Three.js WebGL globe and custom shaders.
+  - Tone.js sonification engine.
+  - Interactive interface: timeline, split curtain, acoustic buoys, Classroom and Simple UI modes, and video and MIDI export.
+
 ## Hackathon Compliance & Project Timeline
 
 - **Challenge Timing**: Project development started after October 28th, following the official release of the challenge description for **The Earth Information Jukebox**.
 - **Original Work**: Built during the NASA Space Apps Challenge window. All WebGL shaders, Tone.js harmonic sonification mappings, vector UI assets, SQLite schema, and zero-dependency Node.js server logic were developed specifically for this submission.
+
+## Use of Super Intelligence (SI)
+
+In line with the NASA Space Apps Challenge rules, we disclose where Super Intelligence tools were used in this project:
+
+- **Coding, debugging and troubleshooting:** SI assistants (Claude by Anthropic, Antigravity and Grok) helped write, review and fix code, including the data-processing scripts in `scripts/` and the service-worker registration.
+- **Data analysis and interpretation:** SI assisted with processing and checking the MODIS, GPCP and other series. All values come from the NASA and NOAA sources listed in [`data/PROVENANCE.md`](data/PROVENANCE.md).
+- **Research and information gathering:** SI helped identify data sources, products and tools.
+- **Writing and editing:** this README, the project summary and the descriptions were drafted and edited with SI assistance.
+- **Not used:** no AI model runs inside the app, and [confirm: no AI-generated images, video or audio are included].
+
+All SI-assisted work was reviewed by the team, and the team takes responsibility for the final result. The project does not use or modify any NASA logos, flags or mission identifiers.
 
 ## Requirements
 
@@ -61,7 +84,7 @@ npm test
 - **3D WebGL Globe & Custom Shaders** — Subsurface pack-ice/domain overlays, natural cyan-blue atmospheric limb glow, 2003 gold baseline ring, and 3D split curtain (`Then vs. Now`).
 - **Real-Time Harmonic Sonification** — Tone.js synth & ambient drone mapped to satellite telemetry, with selectable audio styles, live spectrum visualizer, spoken/text captions, and MIDI export.
 - **Interactive Exploration** — Click-to-listen regional probes, regional story cards, 3D acoustic sonar buoys (persisted per session), live/monthly NASA GIBS imagery (with automatic 12s timeout and low-res/procedural fallback), custom `year,value` CSV overlay, experimental shared buoy rooms (4s polling sync), WebM video export (`8s` / `16s` / `24s` with live progress and cancel), and Lite / Classroom / mobile-friendly `Simple UI` modes.
-- **Offline-Ready & PWA** — Core client libraries (Three.js, Tone.js, GSAP, lil-gui) and Earth globe textures (Blue Marble day, night city lights, normal bump, ocean specular, clouds) are vendored locally under `public/vendor/`. Installable manifest and offline service worker caching (`public/manifest.webmanifest`, `public/sw.js`) ensure full 3D globe functionality from the first load without network access. Typography (Inter, JetBrains Mono, Space Grotesk) is loaded from Google Fonts and falls back to system fonts (`system-ui, sans-serif`) when offline.
+- **Offline-Ready & PWA** — Core client libraries (Three.js, Tone.js, GSAP, lil-gui) and Earth globe textures (Blue Marble day, night city lights, normal bump, ocean specular, clouds) are vendored locally under `public/vendor/`. Installable manifest and offline service worker caching (`public/manifest.webmanifest`, `public/sw.js`) ensure full 3D globe functionality offline after the first visit (the service worker installs on the first online load). Typography (Inter, JetBrains Mono, Space Grotesk) is loaded from Google Fonts and falls back to system fonts (`system-ui, sans-serif`) when offline.
 
 ## Architecture
 
@@ -76,14 +99,12 @@ npm test
 
 ## Database Tables (`db/earth_jukebox.db`)
 
-| Table | Purpose |
-| --- | --- |
-| `domain_metrics` | Multi-domain yearly time series (`ice`, `antarctica`, `air`, `greenness`, `temperature`, `rainfall`, 2003–2025) with provenance tags |
-| `arctic_metrics` | Backward-compatible Arctic sea-ice time series with multi-year pack ice percentages |
-| `arctic_regions` | Landmark coordinates, camera framing, and regional story insights |
-| `acoustic_buoys` | Session-scoped deployed 3D acoustic sonar buoys (max 3 per session, domain-isolated) |
-| `shared_snapshots` | Short-URL saved view states (domain, year, audio style, split curtain, region) |
-| `gibs_cache` | Metadata for NASA GIBS WMS PNG tiles cached under `db/cache/gibs/` |
+- `domain_metrics` — Multi-domain yearly time series (`ice`, `antarctica`, `air`, `greenness`, `temperature`, `rainfall`, 2003–2025) with provenance tags.
+- `arctic_metrics` — Backward-compatible Arctic sea-ice time series with multi-year pack ice percentages.
+- `arctic_regions` — Landmark coordinates, camera framing, and regional story insights.
+- `acoustic_buoys` — Session-scoped deployed 3D acoustic sonar buoys (max 3 per session, domain-isolated).
+- `shared_snapshots` — Short-URL saved view states (domain, year, audio style, split curtain, region).
+- `gibs_cache` — Metadata for NASA GIBS WMS PNG tiles cached under `db/cache/gibs/`.
 
 ## API Endpoints
 
@@ -95,3 +116,14 @@ npm test
 - `POST /api/snapshots` / `GET /api/snapshots/:id` — Create and restore shareable view snapshots
 - `GET /api/gibs/status` — GIBS cache status
 - `GET /api/gibs/:year` / `GET /api/gibs/:domain/:year` / `GET /api/gibs/:domain/:year/:month` / `GET /api/gibs/live/:domain` — Caching proxy for NASA GIBS imagery
+
+## Credits & Data Sources
+
+- **NASA:** GISS GISTEMP v4, MODIS Terra MOD08_M3 (LAADS DAAC), MODIS Terra MOD13C2 (LP DAAC), Global Imagery Browse Services (GIBS), Earthdata.
+- **NOAA and partners:** GPCP v2.3 monthly precipitation (NOAA NCEI), NSIDC Sea Ice Index v4.
+- **Open-source software:** Three.js, Tone.js, GSAP, lil-gui, earthaccess, pyhdf, OpenStreetMap Nominatim, Node.js.
+- **Earth textures and background video:** [add source and licence for the five files in `public/vendor/textures/` and for `public/bg-video.mp4`].
+
+## License
+
+MIT License. See the [`LICENSE`](LICENSE) file.
